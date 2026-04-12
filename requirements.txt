@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+pillow
+diffusers
+transformers
+accelerate
+slowapi
+python-multipart
+apscheduler
+torch
