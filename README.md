@@ -1,98 +1,53 @@
-# Nkarik v2 🎨
+# Նկարիկ (Nkarik) 🎨
 
-> Draw anything — AI makes it magical. A child-focused creative app.
+> Նկարիր — Ամեն անգամ նոր արվեստ!
 
-## What's new in v2
+Նկարիկը հայերեն մանկական նկարչական հավելված է, որն օգտագործում է պատահականացված ալգորիթմներ՝ երեխաների նկարները կախարդական արվեստի գործերի վերածելու համար։
 
-| Area | v1 | v2 |
-|---|---|---|
-| **AI model** | SD img2img (30 steps, ~20s) | SDXL-Turbo (4 steps, ~3s on GPU) |
-| **Image format** | PNG (large) | WebP 88% quality (~30% smaller) |
-| **Prompts** | Generic | Per-style templates with negative prompts |
-| **Event loop** | Blocking generation | `run_in_executor` (non-blocking async) |
-| **Image purge** | Per-request | Scheduled every 10 min (APScheduler) |
-| **Canvas tools** | Pen only | Pen + eraser + undo (20 steps) |
-| **Loading UX** | Spinner | Animated magic wand + rotating messages |
-| **Result UX** | Plain image | Reveal animation + floating particles |
-| **Style prompts** | Appended to style string | Structured positive + negative templates |
+## Առանձնահատկություններ
 
----
+- **3 Կախարդական Ոճ:** Մուլտֆիլմ (Cartoon), Ջրաներկ (Watercolor), և Կոմիքս (Comic)։
+- **Անսահմանափակ Տարբերակներ:** Յուրաքանչյուր ստեղծում ունի 100+ եզակի փոփոխություններ։
+- **Լիովին Օֆլայն:** Աշխատում է առանց ինտերնետի և առանց սերվերի։
+- **Գուշակության Խաղ:** Հավելվածը փորձում է գուշակել, թե ինչ է նկարել երեխան և հայտնում է հետաքրքիր փաստեր։
+- **Կրծքանշանների Համակարգ:** Խրախուսում է ստեղծագործական ակտիվությունը։
+- **Պարզ Օգտագործում:** Մեկ HTML ֆայլ, որը կարելի է բացել ցանկացած բրաուզերում։
 
-## Quick start
+## Ինչպես օգտագործել
 
-### Backend
-```bash
-pip install fastapi uvicorn[standard] pillow diffusers transformers \
-            torch accelerate slowapi python-multipart apscheduler
-uvicorn main:app --reload --port 8000
-```
+Պարզապես բացեք `index.html` ֆայլը ձեր նախընտրած բրաուզերում։ Ոչ մի տեղադրում կամ կարգավորում չի պահանջվում։
 
-### Frontend
-```bash
-npm install
-npm run dev
-```
+## Տեխնիկական մանրամասներ
+
+Հավելվածը կառուցված է օգտագործելով՝
+- HTML5 Canvas
+- Վանիլային JavaScript (առանց արտաքին գրադարանների)
+- CSS3 անիմացիաներ
 
 ---
 
-## Environment variables
+# Nkarik (Նկարիկ) 🎨
 
-| Variable | Default | Description |
-|---|---|---|
-| `VITE_API_URL` | `http://127.0.0.1:8000` | Backend URL |
-| `USE_TURBO` | `true` | Use SDXL-Turbo (faster). Set `false` for SD 1.5 |
-| `SD_MODEL_ID` | `nitrosocke/Ghibli-Diffusion` | Fallback SD model |
-| `ALLOWED_ORIGINS` | `*` | Comma-separated CORS origins |
-| `IMAGE_TTL_SECONDS` | `86400` | Auto-delete time for stored images |
+> Draw anything — every time a new piece of art!
 
----
+Nkarik is an Armenian children's drawing app that uses extensive randomization to turn children's drawings into magical artworks.
 
-## GitHub workflow
+## Features
 
-### Branch strategy
-```
-main          ← production-ready, protected
-dev           ← integration branch
-feat/xxx      ← feature branches (e.g. feat/undo, feat/guess-mode)
-fix/xxx       ← bug fixes
-```
+- **3 Magical Styles:** Cartoon (Մուլտֆիլմ), Watercolor (Ջրաներկ), and Comic (Կոմիքս).
+- **Infinite Variations:** Each generation features 100+ unique variations.
+- **Fully Offline:** Works without internet and without a backend.
+- **Guessing Game:** The app tries to guess what the child drew and shares fun facts.
+- **Badge System:** Encourages creative activity.
+- **Simple Use:** A single HTML file that can be opened in any browser.
 
-### Recommended PR flow
-```
-feat/my-feature → dev → (review + tests) → main
-```
+## How to use
 
-### Commit format
-```
-feat: add eraser tool
-fix: canvas cursor on mobile
-perf: switch to SDXL-Turbo
-chore: update dependencies
-```
+Simply open the `index.html` file in your preferred browser. No installation or configuration is required.
 
----
+## Technical details
 
-## Deployment
-
-### Backend — Fly.io (GPU)
-```bash
-fly launch --name nkarik-api
-fly scale vm a100-40gb   # or l40s for cost efficiency
-fly deploy
-```
-
-### Frontend — Vercel
-```bash
-vercel --prod
-# Set VITE_API_URL env var in Vercel dashboard
-```
-
----
-
-## Phase 2 roadmap
-
-- **AI drawing guesser** — CLIP classifier identifies subject, enriches prompt
-- **Style memory** — Per-session drawing fingerprint, no PII stored
-- **Gamification** — Badges, levels, unlockable styles
-- **Parent dashboard** — History view, style lock, safe-mode toggle
-- **Offline PWA** — Service worker, canvas saves to IndexedDB
+The app is built using:
+- HTML5 Canvas
+- Vanilla JavaScript (no external libraries)
+- CSS3 Animations

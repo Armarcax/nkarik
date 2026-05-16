@@ -1,15 +1,1094 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#ff6b35" />
-    <meta name="description" content="Nkarik – Draw anything, AI makes it magical!" />
-    <title>Nkarik 🎨</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<!DOCTYPE html>
+<html lang="hy">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>🎨 Նկարիկ - 3 Ոճ, Անսահմանափակ Տարբերակներ</title>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@600;700;900&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+    :root{
+      --red:#D90012; --blue:#0033A0; --gold:#F2A800;
+      --bg:#0f0e17; --card:#1a1928; --border:#2d2b45;
+      --text:#fffffe; --muted:#a7a9be;
+    }
+    body{
+      font-family:'Nunito',sans-serif; background:var(--bg); color:var(--text);
+      min-height:100svh; padding:12px 12px 60px; overflow-x:hidden;
+    }
+    .app{max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+    .hdr{text-align:center;padding:8px 0}
+    .logo{
+      font-family:'Baloo 2',sans-serif;font-size:42px;font-weight:800;
+      background:linear-gradient(135deg,var(--red),var(--gold),var(--blue));
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    }
+    .tagline{font-size:13px;color:var(--muted);font-weight:600;margin-top:2px}
+    .canvas-shell{
+      position:relative;border-radius:20px;overflow:hidden;
+      border:2px solid var(--border); box-shadow:0 0 0 4px rgba(242,168,0,0.08),0 8px 32px rgba(0,0,0,0.4);
+    }
+    #drawCanvas{
+      display:block; width:100%; aspect-ratio:1;
+      background:#fff; touch-action:none; cursor:crosshair; border-radius:18px;
+    }
+    .hint{
+      position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+      pointer-events:none; z-index:2;
+    }
+    .hint span{
+      background:rgba(242,168,0,0.12); border:2px dashed rgba(242,168,0,0.35);
+      color:rgba(242,168,0,0.7); font-size:15px; font-weight:700;
+      padding:10px 22px; border-radius:50px; animation:pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.96)}}
+    .card{
+      background:var(--card); border-radius:20px; padding:14px 16px;
+      border:1px solid var(--border); display:flex; flex-direction:column; gap:10px;
+    }
+    .lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}
+    .color-row{display:flex; gap:8px; flex-wrap:wrap}
+    .swatch{
+      width:32px;height:32px;border-radius:50%; background:var(--c);
+      border:2.5px solid transparent; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.3);
+      transition:transform .12s,border-color .12s,box-shadow .12s;
+    }
+    .swatch:hover{transform:scale(1.15)}
+    .swatch.on{border-color:var(--gold);transform:scale(1.22);box-shadow:0 0 0 3px rgba(242,168,0,0.25)}
+    .swatch[data-c="#ffffff"]{border-color:#555}
+    .size-row{display:flex;gap:8px;align-items:center}
+    .sz{
+      width:38px;height:38px;border-radius:50%; border:2px solid var(--border); background:var(--bg);
+      display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all .12s;
+    }
+    .sz:hover{transform:scale(1.08)}
+    .sz.on{border-color:var(--gold);background:rgba(242,168,0,0.1)}
+    .sz-dot{border-radius:50%;display:block;background:var(--text)}
+    .tool-row{display:flex; gap:8px}
+    .tbtn{
+      flex:1; padding:9px 8px; border-radius:10px; border:1.5px solid var(--border);
+      background:var(--bg); font-family:'Nunito',sans-serif; font-size:12px; font-weight:700;
+      cursor:pointer; color:var(--muted); transition:all .15s; white-space:nowrap;
+    }
+    .tbtn:hover:not(:disabled){border-color:var(--gold);color:var(--text);background:rgba(242,168,0,0.08)}
+    .tbtn.on{border-color:var(--gold);color:var(--gold);background:rgba(242,168,0,0.1)}
+    .tbtn:disabled{opacity:.3;cursor:not-allowed}
+    .tbtn.danger:hover{border-color:var(--red);color:var(--red);background:rgba(217,0,18,0.08)}
+    .style-row{display:flex; gap:8px; overflow-x:auto; padding-bottom:2px; scrollbar-width:none}
+    .style-row::-webkit-scrollbar{display:none}
+    .style-btn{
+      display:flex; flex-direction:column; align-items:center; gap:4px;
+      padding:10px 12px; border-radius:14px; min-width:70px; flex-shrink:0;
+      border:2px solid var(--border); background:var(--bg); cursor:pointer; transition:all .15s;
+    }
+    .style-btn:hover{transform:translateY(-2px);border-color:var(--ac)}
+    .style-btn.on{border-color:var(--ac);background:rgba(255,255,255,0.04);box-shadow:0 0 0 3px color-mix(in srgb,var(--ac) 15%,transparent);}
+    .st-icon{font-size:22px;line-height:1}
+    .st-lbl{font-size:10px;font-weight:700;color:var(--muted)}
+    .btn-gen{
+      width:100%; padding:18px; border:none; border-radius:20px;
+      font-family:'Baloo 2',sans-serif; font-size:22px; font-weight:800;
+      color:#fff; cursor:pointer; letter-spacing:.02em;
+      background:linear-gradient(135deg,var(--red) 0%,var(--gold) 50%,var(--blue) 100%);
+      background-size:200% 200%; animation:grad 4s ease infinite;
+      box-shadow:0 4px 24px rgba(217,0,18,0.3); transition:transform .15s,box-shadow .15s;
+    }
+    .btn-gen:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(217,0,18,0.45)}
+    .btn-gen:active{transform:scale(.98)}
+    @keyframes grad{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+    .loading-screen{
+      position:fixed;inset:0; background:rgba(15,14,23,0.95); backdrop-filter:blur(12px);
+      display:none; flex-direction:column; align-items:center; justify-content:center;
+      z-index:100; gap:20px;
+    }
+    .loading-screen.on{display:flex}
+    .paint-anim{width:80px;height:80px;position:relative}
+    .brush{
+      width:12px;height:56px; background:linear-gradient(to bottom,#a1887f,#6d4c41);
+      border-radius:6px 6px 0 0; margin:0 auto;
+      animation:brush-rock 1.1s ease-in-out infinite; transform-origin:bottom center; position:relative;
+    }
+    .brush-tip{
+      width:16px;height:18px; margin:-2px auto 0;
+      background:linear-gradient(to bottom,var(--red),var(--blue));
+      border-radius:0 0 8px 8px; position:relative; display:flex; justify-content:center;
+    }
+    .drip{
+      position:absolute; bottom:calc(-4px - var(--i)*6px);
+      width:5px;height:5px; border-radius:50%;
+      background:linear-gradient(135deg,var(--red),var(--gold));
+      animation:drip 1.1s calc(var(--i)*.2s) ease-in infinite; opacity:0;
+    }
+    @keyframes brush-rock{0%,100%{transform:rotate(-22deg)}50%{transform:rotate(22deg)}}
+    @keyframes drip{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(22px) scale(.3)}}
+    .load-msg{font-size:16px; font-weight:700; color:var(--text); text-align:center; min-height:24px}
+    .load-bar-wrap{width:200px;height:6px;background:var(--border);border-radius:99px;overflow:hidden}
+    .load-bar{height:100%;background:linear-gradient(90deg,var(--red),var(--gold));border-radius:99px;width:0}
+    .result-screen{
+      position:fixed;inset:0; background:var(--bg); overflow-y:auto;
+      display:none; flex-direction:column; align-items:center; padding:16px 16px 60px; gap:14px; z-index:99;
+    }
+    .result-screen.on{display:flex}
+    .result-logo{
+      font-family:'Baloo 2',sans-serif;font-size:36px;font-weight:800;
+      background:linear-gradient(135deg,var(--red),var(--gold));
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    }
+    .compliment{font-size:17px;font-weight:700;color:var(--gold);text-align:center}
+    .compare{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}
+    .compare-box{
+      background:var(--card);border-radius:14px;padding:10px; border:1px solid var(--border); text-align:center;
+    }
+    .compare-box h4{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.08em}
+    .compare-box img{width:100%;border-radius:8px;display:block}
+    .result-big{width:100%;border-radius:20px;display:block;border:2px solid var(--border)}
+    .result-tag{
+      background:var(--card);border:1px solid var(--border); border-radius:50px; padding:6px 16px;
+      font-size:13px;font-weight:700;color:var(--muted);
+    }
+    .action-row{display:flex;gap:10px;width:100%}
+    .btn-sec{
+      flex:1;padding:13px; border:2px solid var(--border); border-radius:14px;
+      background:var(--card); font-family:'Nunito',sans-serif; font-size:14px; font-weight:700;
+      cursor:pointer; color:var(--text); display:flex; align-items:center; justify-content:center; gap:6px;
+      transition:all .15s;
+    }
+    .btn-sec:hover{border-color:var(--gold);background:rgba(242,168,0,0.08);transform:translateY(-1px)}
+    .badge-toast{
+      position:fixed;top:16px;left:50%;transform:translateX(-50%); z-index:200;
+      display:flex;flex-direction:column;gap:8px;cursor:pointer;
+      animation:badge-in .5s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes badge-in{from{opacity:0;transform:translateX(-50%) translateY(-24px) scale(.85)}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
+    .badge-row{
+      display:flex;align-items:center;gap:12px;min-width:220px;
+      background:var(--card);border:2px solid var(--gold);border-radius:20px;
+      padding:12px 18px;box-shadow:0 4px 24px rgba(242,168,0,0.2);
+    }
+    .badge-icon{font-size:26px}
+    .badge-name{font-size:14px;font-weight:800;color:var(--text)}
+    .badge-sub{font-size:11px;color:var(--muted);margin-top:2px}
+    .confetti-wrap{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:300}
+    .cf{
+      position:absolute;top:-10px;left:var(--x);width:var(--s);height:var(--s);
+      background:var(--c);border-radius:2px;opacity:0;
+      animation:cf-fall var(--d) var(--dl) ease-in forwards;
+    }
+    @keyframes cf-fall{0%{opacity:1;transform:translateY(0) rotate(0deg)}100%{opacity:0;transform:translateY(100vh) rotate(var(--rot))}}
+    .stats{display:flex;gap:14px;justify-content:center;font-size:13px;font-weight:700;color:var(--muted)}
+    .guess-box{
+      width:100%;background:var(--card);border:2px solid rgba(242,168,0,0.4);
+      border-radius:20px;padding:16px;text-align:center;
+      animation:pop .4s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes pop{from{opacity:0;transform:scale(.85) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
+    .guess-q{font-size:16px;font-weight:700;margin-bottom:6px}
+    .guess-q strong{color:var(--gold)}
+    .guess-fact{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:12px}
+    .guess-btns{display:flex;gap:10px;justify-content:center}
+    .g-yes,.g-no{padding:8px 20px;border-radius:50px;border:none;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:transform .1s}
+    .g-yes{background:rgba(67,160,71,0.2);color:#69f0ae}
+    .g-no{background:rgba(217,0,18,0.15);color:#ff5252}
+    .g-yes:hover,.g-no:hover{transform:scale(1.06)}
+    @media(max-width:380px){.logo{font-size:34px}.btn-gen{font-size:18px;padding:15px}}
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important}}
+  </style>
+</head>
+<body>
+<div class="app" id="drawScreen">
+
+  <div class="hdr">
+    <div class="logo">Նկարիկ 🎨</div>
+    <div class="tagline">Նկարիր — Ամեն անգամ նոր արվեստ!</div>
+    <div class="stats" id="statsRow" style="display:none">
+      <span id="statTotal">🎨 0</span>
+      <span id="statStreak">🔥 0</span>
+      <span id="statBadges">🏅 0</span>
+    </div>
+  </div>
+
+  <div class="canvas-shell">
+    <div class="hint" id="hint"><span>✏️ Սկսիր նկարել</span></div>
+    <canvas id="drawCanvas" width="512" height="512"></canvas>
+  </div>
+
+  <div class="card">
+    <span class="lbl">Գույններ</span>
+    <div class="color-row" id="colorRow"></div>
+    <span class="lbl">Վրձնի չափ</span>
+    <div class="size-row" id="sizeRow"></div>
+    <div class="tool-row">
+      <button class="tbtn" id="eraserBtn" onclick="toggleEraser()">🧹 Ջնջիչ</button>
+      <button class="tbtn" id="undoBtn" onclick="doUndo()" disabled>↩️ Հետ</button>
+      <button class="tbtn danger" onclick="doClear()">🗑️ Մաքրել</button>
+    </div>
+  </div>
+
+  <!-- ՄԻԱՅՆ 3 ՈՃ -->
+  <div class="card">
+    <span class="lbl">Կախարդական Ոճ</span>
+    <div class="style-row" id="styleRow"></div>
+  </div>
+
+  <button class="btn-gen" onclick="doGenerate()">✨ Կենդանացնել!</button>
+</div>
+
+<div class="loading-screen" id="loadScreen">
+  <div class="paint-anim">
+    <div class="brush">
+      <div class="brush-tip">
+        <div class="drip" style="--i:0"></div>
+        <div class="drip" style="--i:1"></div>
+        <div class="drip" style="--i:2"></div>
+        <div class="drip" style="--i:3"></div>
+        <div class="drip" style="--i:4"></div>
+      </div>
+    </div>
+  </div>
+  <div class="load-msg" id="loadMsg">Կերտում ենք գլուխգործոցը… ✨</div>
+  <div class="load-bar-wrap"><div class="load-bar" id="loadBar"></div></div>
+</div>
+
+<div class="result-screen" id="resultScreen">
+  <div class="confetti-wrap" id="confettiWrap"></div>
+  <div class="badge-toast" id="badgeToast" style="display:none"></div>
+  <div class="result-logo">Նկարիկ</div>
+  <div class="compliment" id="compliment"></div>
+  <div class="stats">
+    <span id="rStatTotal">🎨 0</span>
+    <span id="rStatStreak">🔥 0</span>
+    <span id="rStatBadges">🏅 0</span>
+  </div>
+  <div class="compare">
+    <div class="compare-box">
+      <h4>📸 Քո նկարը</h4>
+      <img id="origImg" alt="original">
+    </div>
+    <div class="compare-box">
+      <h4>✨ Կախարդված</h4>
+      <img id="resultImg" alt="result">
+    </div>
+  </div>
+  <div class="guess-box" id="guessBox" style="display:none">
+    <div class="guess-q">Կարծում եմ նկարել ես… <strong id="guessWord"></strong>?</div>
+    <div class="guess-fact" id="guessFact"></div>
+    <div class="guess-btns">
+      <button class="g-yes" onclick="closeGuess(true)">✅ Այո!</button>
+      <button class="g-no"  onclick="closeGuess(false)">❌ Ոչ!</button>
+    </div>
+  </div>
+  <div class="result-tag" id="resultTag"></div>
+  <div class="action-row">
+    <button class="btn-sec" onclick="doSave()">💾 Պահել</button>
+    <button class="btn-sec" onclick="doAgain()">✏️ Նոր նկար</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  ՆԿԱՐԻԿ — 3 Ոճ, 100+ Տարբերակ
+// ═══════════════════════════════════════════════════════
+
+// ── Config ──────────────────────────────────────────────
+const STYLES = [
+  { id:"cartoon",   label:"Մուլտֆիլմ", icon:"🌿", color:"#43a047" },
+  { id:"watercolor",label:"Ջրաներկ",   icon:"🎨", color:"#e91e63" },
+  { id:"comic",     label:"Կոմիքս",    icon:"💥", color:"#f9a825" },
+];
+
+const COLORS_PAL = [
+  "#1a1a1a","#e53935","#ff6f00","#fdd835",
+  "#43a047","#1e88e5","#8e24aa","#ffffff",
+];
+const SIZES_PAL = [3,7,14,24];
+
+const GUESSES = [
+  {t:"կատու 🐱", f:"Կատուները օրական 13-16 ժամ քնում են!"},
+  {t:"շուն 🐶", f:"Շները 150+ բառ հասկանում են!"},
+  {t:"ծառ 🌳", f:"Ծառերը թթվածնի 20%-ն են արտադրում!"},
+  {t:"արև ☀️", f:"Արևը 4.6 միլիարդ տարեկան է:"},
+  {t:"ձուկ 🐟", f:"Ձկները 500 մլն տարի ապրում են Երկրի վրա:"},
+  {t:"թիթեռ 🦋", f:"Թիթեռները ոտքերով ճաշակում են!"},
+  {t:"դինոզավր 🦖", f:"T-Rex-ի ձեռքերը ծափ տալ չէր կարողանում:"},
+  {t:"վիշապ 🐉", f:"Բոլոր մշակույթներն ունեն վիշապի առասպել:"},
+  {t:"ծիածան 🌈", f:"Ծիածանի ծայրին երբեք չես հասնի:"},
+  {t:"ռոբոտ 🤖", f:"Առաջին ռոբոտը ստեղծվել է 1954-ին:"},
+  {t:"աստղ ⭐", f:"Տիեզերքում ավելի շատ աստղ կա, քան ավազ:"},
+  {t:"ծաղիկ 🌸", f:"Կան ծաղիկներ, որ միայն գիշերն են բացվում:"},
+  {t:"ռակետ 🚀", f:"Ռոկետը ժամում 28,000 կմ է անցնում:"},
+  {t:"ամպ ☁️", f:"Ամպը կարող է կշռել 500,000 կգ:"},
+];
+
+const COMPLIMENTS = [
+  "Դու կախարդական նկարիչ ես! 🌟",
+  "Ուաու, ի՜նչ գլուխգործոց! 🎉",
+  "Դու ստեղծեցիր ինչ-որ հրաշք! ✨",
+  "Սա քո լավագույն գործն է! 🏆",
+  "Քո ստեղծագործ ուժը անպարտ է! 🦸",
+];
+
+const BADGES = [
+  {id:"first",  emoji:"🎨", name:"Առաջին քայլ",   desc:"Ստեղծեցիր քո առաջին գործը!",     cond:s=>s.total>=1},
+  {id:"exp",    emoji:"🌍", name:"Ոճերի հետախույզ",desc:"Փորձեցիր 3 տարբեր ոճ:",          cond:s=>s.styles.size>=3},
+  {id:"master", emoji:"🏆", name:"Մեծ վարպետ",     desc:"Ստեղծեցիր 10 գործ:",             cond:s=>s.total>=10},
+  {id:"streak", emoji:"🔥", name:"Կրակի մեջ",      desc:"3 նկար անընդմեջ:",               cond:s=>s.streak>=3},
+];
+
+const LOAD_MSGS = [
+  "Վերլուծում ենք քո գծերը… 🔍",
+  "Հայտնաբերում ենք ձևերը… 🔮",
+  "Կիրառում ենք կախարդական ոճը… ✨",
+  "Ավելացնում ենք գույներ… 🎨",
+  "Գրեթե պատրաստ է… 🌟",
+];
+
+// ── State ────────────────────────────────────────────────
+let curColor   = "#1a1a1a";
+let curSize    = 7;
+let curTool    = "pen";
+let curStyle   = 0;
+let isDrawing  = false;
+let lastX = 0, lastY = 0;
+let history    = [];
+let histIdx    = -1;
+let showHint   = true;
+const session  = JSON.parse(localStorage.getItem("nk_session")||'{"total":0,"streak":0,"styles":[],"badges":[],"lastAt":null}');
+session.styles = new Set(session.styles);
+
+// ── Canvas ───────────────────────────────────────────────
+const canvas = document.getElementById("drawCanvas");
+const ctx    = canvas.getContext("2d");
+
+function initCanvas() {
+  ctx.lineCap = ctx.lineJoin = "round";
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0,0,512,512);
+  snapshot();
+}
+
+function snapshot() {
+  history = history.slice(0, histIdx+1);
+  history.push(canvas.toDataURL());
+  if (history.length > 25) history.shift();
+  histIdx = history.length - 1;
+  document.getElementById("undoBtn").disabled = histIdx <= 0;
+}
+
+function doUndo() {
+  if (histIdx <= 0) return;
+  histIdx--;
+  const img = new Image();
+  img.src = history[histIdx];
+  img.onload = () => { ctx.clearRect(0,0,512,512); ctx.drawImage(img,0,0); };
+  document.getElementById("undoBtn").disabled = histIdx <= 0;
+}
+
+function doClear() {
+  ctx.globalCompositeOperation = "source-over";
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0,0,512,512);
+  showHint = true;
+  document.getElementById("hint").style.display = "flex";
+  snapshot();
+}
+
+function toggleEraser() {
+  curTool = curTool === "eraser" ? "pen" : "eraser";
+  document.getElementById("eraserBtn").classList.toggle("on", curTool==="eraser");
+}
+
+function getPos(e) {
+  const r  = canvas.getBoundingClientRect();
+  const sx = 512 / r.width, sy = 512 / r.height;
+  const s  = e.touches ? e.touches[0] : e;
+  return [(s.clientX - r.left)*sx, (s.clientY - r.top)*sy];
+}
+
+function onDown(e) {
+  e.preventDefault();
+  isDrawing = true;
+  [lastX, lastY] = getPos(e);
+  if (showHint) {
+    showHint = false;
+    document.getElementById("hint").style.display = "none";
+  }
+}
+
+function onMove(e) {
+  if (!isDrawing) return;
+  e.preventDefault();
+  const [x, y] = getPos(e);
+  ctx.globalCompositeOperation = curTool==="eraser" ? "destination-out" : "source-over";
+  ctx.strokeStyle = curTool==="eraser" ? "rgba(0,0,0,1)" : curColor;
+  ctx.lineWidth   = curTool==="eraser" ? curSize*2.5 : curSize;
+  ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(x,y); ctx.stroke();
+  [lastX, lastY] = [x, y];
+}
+
+function onUp() {
+  if (!isDrawing) return;
+  isDrawing = false;
+  snapshot();
+}
+
+canvas.addEventListener("mousedown",  onDown);
+canvas.addEventListener("mousemove",  onMove);
+canvas.addEventListener("mouseup",    onUp);
+canvas.addEventListener("mouseleave", onUp);
+canvas.addEventListener("touchstart", onDown, {passive:false});
+canvas.addEventListener("touchmove",  onMove, {passive:false});
+canvas.addEventListener("touchend",   onUp);
+
+// ── Build UI ─────────────────────────────────────────────
+function buildUI() {
+  const cr = document.getElementById("colorRow");
+  COLORS_PAL.forEach(c => {
+    const b = document.createElement("button");
+    b.className = "swatch" + (c===curColor?" on":"");
+    b.style.setProperty("--c", c);
+    b.dataset.c = c;
+    b.onclick = () => {
+      cr.querySelectorAll(".swatch").forEach(x=>x.classList.remove("on"));
+      b.classList.add("on");
+      curColor = c; curTool = "pen";
+      document.getElementById("eraserBtn").classList.remove("on");
+    };
+    cr.appendChild(b);
+  });
+
+  const sr = document.getElementById("sizeRow");
+  SIZES_PAL.forEach(s => {
+    const b = document.createElement("button");
+    b.className = "sz" + (s===curSize?" on":"");
+    b.innerHTML = `<span class="sz-dot" style="width:${Math.min(s,22)}px;height:${Math.min(s,22)}px"></span>`;
+    b.onclick = () => {
+      sr.querySelectorAll(".sz").forEach(x=>x.classList.remove("on"));
+      b.classList.add("on");
+      curSize = s; curTool = "pen";
+      document.getElementById("eraserBtn").classList.remove("on");
+    };
+    sr.appendChild(b);
+  });
+
+  const stR = document.getElementById("styleRow");
+  STYLES.forEach((st,i) => {
+    const b = document.createElement("button");
+    b.className = "style-btn" + (i===curStyle?" on":"");
+    b.style.setProperty("--ac", st.color);
+    b.innerHTML = `<span class="st-icon">${st.icon}</span><span class="st-lbl">${st.label}</span>`;
+    b.onclick = () => {
+      stR.querySelectorAll(".style-btn").forEach(x=>x.classList.remove("on"));
+      b.classList.add("on"); curStyle = i;
+    };
+    stR.appendChild(b);
+  });
+}
+
+// ── Drawing analyser ──────────────────────────────────────
+function analyseCanvas() {
+  const data = ctx.getImageData(0,0,512,512).data;
+  const W = 512;
+  let minX=W,minY=W,maxX=0,maxY=0;
+  const pixels=[], colorMap={};
+
+  for (let y=0;y<W;y+=2) for (let x=0;x<W;x+=2) {
+    const i=(y*W+x)*4;
+    if (data[i]<248||data[i+1]<248||data[i+2]<248) {
+      pixels.push({x,y,r:data[i],g:data[i+1],b:data[i+2]});
+      if(x<minX)minX=x; if(x>maxX)maxX=x;
+      if(y<minY)minY=y; if(y>maxY)maxY=y;
+      const key=`${~~(data[i]/32)},${~~(data[i+1]/32)},${~~(data[i+2]/32)}`;
+      colorMap[key]=(colorMap[key]||0)+1;
+    }
+  }
+
+  const sorted = Object.entries(colorMap).sort((a,b)=>b[1]-a[1]);
+  const domColors = sorted.slice(0,5).map(([k])=>{
+    const[r,g,b]=k.split(",").map(n=>n*32);
+    return {r,g,b};
+  });
+  if(!domColors.length) domColors.push({r:100,g:149,b:237});
+
+  const shapes = clusterShapes(pixels);
+
+  return {
+    minX,minY,maxX,maxY,
+    cx:(minX+maxX)/2, cy:(minY+maxY)/2,
+    w:maxX-minX, h:maxY-minY,
+    domColors, shapes,
+    count:pixels.length,
+    aspect:(maxX-minX)/Math.max(1,maxY-minY),
+  };
+}
+
+function clusterShapes(pixels) {
+  const visited=new Set(), shapes=[];
+  const map=new Map(pixels.map(p=>[`${p.x},${p.y}`,p]));
+
+  for (const p of pixels) {
+    const key=`${p.x},${p.y}`;
+    if(visited.has(key)) continue;
+    const cluster=[], q=[p];
+    visited.add(key);
+    while(q.length&&cluster.length<800){
+      const cur=q.shift(); cluster.push(cur);
+      for(let dy=-6;dy<=6;dy+=2) for(let dx=-6;dx<=6;dx+=2){
+        const nk=`${cur.x+dx},${cur.y+dy}`;
+        if(!visited.has(nk)&&map.has(nk)){visited.add(nk);q.push(map.get(nk));}
+      }
+    }
+    if(cluster.length<15) continue;
+    const xs=cluster.map(p=>p.x), ys=cluster.map(p=>p.y);
+    const cx2=(Math.min(...xs)+Math.max(...xs))/2;
+    const cy2=(Math.min(...ys)+Math.max(...ys))/2;
+    const sw=Math.max(...xs)-Math.min(...xs);
+    const sh=Math.max(...ys)-Math.min(...ys);
+    const midP=cluster[~~(cluster.length/2)];
+    shapes.push({cx:cx2,cy:cy2,w:sw,h:sh,sz:cluster.length,col:midP});
+  }
+  return shapes.sort((a,b)=>b.sz-a.sz).slice(0,6);
+}
+
+// ══════════════════════════════════════════════════════════
+//  ՀԶՈՐ ԳԵՆԵՐԱՏՈՐՆԵՐ (3 ՈՃ, 100+ ՏԱՐԲԵՐԱԿ)
+// ══════════════════════════════════════════════════════════
+function makeCanvas() {
+  const c=document.createElement("canvas"); c.width=c.height=512; return c;
+}
+
+function clamp(v,lo,hi){return Math.max(lo,Math.min(hi,v))}
+function c2rgb({r,g,b},a=1){return `rgba(${clamp(r,0,255)},${clamp(g,0,255)},${clamp(b,0,255)},${a})`}
+function lighten({r,g,b},n){return {r:clamp(r+n,0,255),g:clamp(g+n,0,255),b:clamp(b+n,0,255)}}
+function darken(c,n){return lighten(c,-n)}
+function rnd(min,max){return min+Math.random()*(max-min)}
+function rndInt(min,max){return ~~rnd(min,max+1)}
+function rndFrom(arr){return arr[~~(Math.random()*arr.length)]}
+function rndColor(){return {r:rndInt(30,255),g:rndInt(30,255),b:rndInt(30,255)}}
+function jitter(v,amt){return v+(Math.random()-.5)*amt*2}
+
+// ── 1. CARTOON ───────────────────────────────────────────
+function genCartoon(a) {
+  const out=makeCanvas(), ctx=out.getContext("2d");
+
+  // 1. Ֆոն (տարբերակներ՝ պարզ երկինք, աստղեր, անտառ, քաղաք)
+  const bgType = rndInt(0,3);
+  if(bgType===0) {
+    // Դասական երկինք
+    const skies=[["#b3e5fc","#e8f5e9"],["#fce4ec","#fff9c4"],["#e8eaf6","#fce4ec"]];
+    const sky=rndFrom(skies);
+    const bg=ctx.createLinearGradient(0,0,512,512);
+    bg.addColorStop(0,sky[0]); bg.addColorStop(1,sky[1]);
+    ctx.fillStyle=bg; ctx.fillRect(0,0,512,512);
+  } else if(bgType===1) {
+    // Գիշերային երկինք
+    ctx.fillStyle="#0d1b2a"; ctx.fillRect(0,0,512,512);
+    for(let i=0;i<80;i++) {
+      ctx.fillStyle=`rgba(255,255,255,${rnd(0.4,0.9)})`;
+      ctx.beginPath(); ctx.arc(rnd(0,512), rnd(0,300), rnd(0.5,2), 0, Math.PI*2); ctx.fill();
+    }
+  } else if(bgType===2) {
+    // Անտառ
+    const grad=ctx.createLinearGradient(0,0,0,512);
+    grad.addColorStop(0,"#a5d6a7"); grad.addColorStop(1,"#2e7d32");
+    ctx.fillStyle=grad; ctx.fillRect(0,0,512,512);
+    // Ծառեր
+    for(let i=0;i<8;i++) {
+      const tx=rnd(20,490), ty=rnd(100,400), th=rnd(40,120);
+      ctx.fillStyle="#5d4037"; ctx.fillRect(tx-8,ty,16,th);
+      ctx.fillStyle=`hsl(${rndInt(80,160)},70%,${rndInt(30,50)}%)`;
+      ctx.beginPath(); ctx.arc(tx,ty,th*0.5,0,Math.PI*2); ctx.fill();
+    }
+  } else {
+    // Քաղաք
+    const grad=ctx.createLinearGradient(0,0,0,512);
+    grad.addColorStop(0,"#e0e0e0"); grad.addColorStop(1,"#757575");
+    ctx.fillStyle=grad; ctx.fillRect(0,0,512,512);
+    for(let i=0;i<12;i++) {
+      const bx=rnd(0,512), by=rnd(150,400), bw=rnd(20,60), bh=rnd(60,200);
+      ctx.fillStyle=`hsl(${rndInt(200,280)},30%,${rndInt(50,80)}%)`;
+      ctx.fillRect(bx,by,bw,bh);
+      // Պատուհաններ
+      ctx.fillStyle=`rgba(255,255,200,${rnd(0.5,0.9)})`;
+      for(let wy=by+10; wy<by+bh-15; wy+=20) {
+        for(let wx=bx+5; wx<bx+bw-10; wx+=15) {
+          if(Math.random()>0.3) ctx.fillRect(wx,wy,8,10);
+        }
+      }
+    }
+  }
+
+  // 2. Ամպեր (տարբեր տեսք)
+  const cloudCount = rndInt(2,6);
+  for(let i=0;i<cloudCount;i++) {
+    const cx=rndInt(20,480), cy=rndInt(15,120);
+    ctx.fillStyle=`rgba(255,255,255,${rnd(0.6,0.95)})`;
+    let sx = 0, sy = 0;
+    for(let j=0;j<rndInt(3,7);j++) {
+      const rx=rnd(12,28), ry=rnd(8,18);
+      const ex = cx + j*rx*0.8, ey = cy + Math.sin(j)*ry*1.2;
+      ctx.beginPath(); ctx.ellipse(ex, ey, rx, ry, 0, 0, Math.PI*2); ctx.fill();
+      if(j===0){ sx=ex; sy=ey; }
+    }
+  }
+
+  // 3. Գետին (ընտրովի)
+  if(rnd(0,1)>0.4) {
+    const grounds=[["#a5d6a7","#66bb6a"],["#ffcc80","#ffa726"],["#b2dfdb","#4db6ac"]];
+    const gr=rndFrom(grounds);
+    const ground=ctx.createLinearGradient(0,350,0,512);
+    ground.addColorStop(0,gr[0]); ground.addColorStop(1,gr[1]);
+    ctx.fillStyle=ground; ctx.fillRect(0, 370, 512, 142);
+  }
+
+  const cols=a.domColors;
+  a.shapes.forEach((sh,i)=>{
+    const{cx,cy,w,h,col}=sh;
+    const col0=cols[i%cols.length]||col;
+    const sz=Math.max(w,h)*0.7+rnd(20,50);
+
+    // 4. Կերպարի ձև (3 տարբեր ձև)
+    const bodyType = rndInt(0,2);
+    ctx.fillStyle=`rgba(0,0,0,${rnd(0.05,0.15)})`;
+    ctx.beginPath();ctx.ellipse(cx,cy+sz+8,sz*0.55,sz*0.1,0,0,Math.PI*2);ctx.fill();
+
+    const bg2=ctx.createRadialGradient(cx-sz*.25,cy-sz*.25,sz*.05,cx,cy,sz);
+    bg2.addColorStop(0,c2rgb(lighten(col0,rndInt(80,120))));
+    bg2.addColorStop(.4,c2rgb(lighten(col0,rndInt(30,60))));
+    bg2.addColorStop(1,c2rgb(col0));
+    ctx.fillStyle=bg2;
+    ctx.beginPath();
+    if(bodyType===0) ctx.ellipse(cx,cy,sz,sz*0.85+rnd(-10,10),0,0,Math.PI*2);
+    else if(bodyType===1) ctx.ellipse(cx,cy,sz*0.8,sz,rnd(-.3,.3),0,Math.PI*2);
+    else roundRect(ctx,cx-sz,cy-sz*0.9,sz*2,sz*1.8,sz*0.4);
+    ctx.fill();
+    ctx.strokeStyle="#1a1a1a"; ctx.lineWidth=rnd(3,6); ctx.stroke();
+
+    // 5. Աչքեր (3 տարբեր ոճ)
+    const eyeX = sz*0.28, eyeY = cy-sz*0.15, eyeS = sz*(rnd(0.15,0.24));
+    const eyeStyle = rndInt(0,2);
+    [[cx-eyeX, eyeY],[cx+eyeX, eyeY]].forEach(([ex,ey2])=>{
+      ctx.fillStyle="white";
+      ctx.beginPath(); ctx.ellipse(ex,ey2,eyeS,eyeS*rnd(0.9,1.3),0,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle="#1a1a1a"; ctx.lineWidth=2; ctx.stroke();
+      if(eyeStyle===0) {
+        ctx.fillStyle="#1a1a1a"; ctx.beginPath(); ctx.arc(ex+rnd(0,3),ey2+rnd(0,3),eyeS*0.38,0,Math.PI*2); ctx.fill();
+      } else if(eyeStyle===1) {
+        ctx.fillStyle=c2rgb(col0); ctx.beginPath(); ctx.arc(ex,ey2,eyeS*0.5,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle="#1a1a1a"; ctx.beginPath(); ctx.arc(ex,ey2,eyeS*0.28,0,Math.PI*2); ctx.fill();
+      } else {
+        ctx.fillStyle=`hsl(${rndInt(0,360)},80%,60%)`;
+        ctx.beginPath(); ctx.arc(ex,ey2,eyeS*0.5,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle="#1a1a1a"; ctx.beginPath(); ctx.arc(ex,ey2,eyeS*0.25,0,Math.PI*2); ctx.fill();
+      }
+      ctx.fillStyle="white"; ctx.beginPath(); ctx.arc(ex-2,ey2-3,eyeS*0.13,0,Math.PI*2); ctx.fill();
+    });
+
+    // 6. Բերան (4 տարբերակ)
+    const mouthType = rndInt(0,3);
+    if(mouthType===0){ctx.beginPath();ctx.arc(cx,cy+sz*.2,sz*.22,0.1,Math.PI-.1);ctx.strokeStyle="#1a1a1a";ctx.lineWidth=3;ctx.stroke();}
+    else if(mouthType===1){ctx.fillStyle="#e53935";const mw=sz*.18;ctx.beginPath();ctx.ellipse(cx,cy+sz*.22,mw,mw*.5,0,0,Math.PI);ctx.fill();}
+    else if(mouthType===2){ctx.strokeStyle="#1a1a1a";ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(cx-sz*.12,cy+sz*.18);ctx.lineTo(cx+sz*.12,cy+sz*.18);ctx.stroke();}
+    else{ctx.beginPath();ctx.arc(cx,cy+sz*.25,sz*.18,Math.PI+.15,-.15);ctx.strokeStyle="#1a1a1a";ctx.lineWidth=3;ctx.stroke();}
+
+    // 7. Այտեր
+    ctx.fillStyle=`rgba(255,${rndInt(80,140)},${rndInt(80,140)},${rnd(0.2,0.35)})`;
+    ctx.beginPath();ctx.ellipse(cx-sz*0.45,cy+sz*0.07,sz*0.12,sz*0.07,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(cx+sz*0.45,cy+sz*0.07,sz*0.12,sz*0.07,0,0,Math.PI*2);ctx.fill();
+
+    // 8. Աքսեսուարներ (գլխարկ, աղեղ, թագ)
+    if(rnd(0,1)>0.5) {
+      const accType = rndInt(0,2);
+      if(accType===0) {
+        ctx.fillStyle=`hsl(${rndInt(0,360)},70%,60%)`;
+        ctx.beginPath();ctx.rect(cx-sz*0.38,cy-sz-18,sz*0.76,18);ctx.fill();
+        ctx.fillRect(cx-sz*0.5,cy-sz-4,sz,10);
+        ctx.strokeStyle="#1a1a1a";ctx.lineWidth=2;ctx.strokeRect(cx-sz*0.38,cy-sz-18,sz*0.76,18);
+      } else if(accType===1) {
+        ctx.fillStyle="hotpink";
+        ctx.beginPath();ctx.moveTo(cx,cy-sz*0.35);ctx.lineTo(cx-sz*0.22,cy-sz*0.22);ctx.lineTo(cx,cy-sz*0.28);ctx.lineTo(cx+sz*0.22,cy-sz*0.22);ctx.closePath();ctx.fill();
+      } else {
+        const crownCol = `hsl(${rndInt(40,60)},100%,70%)`;
+        ctx.fillStyle=crownCol;
+        ctx.beginPath(); ctx.moveTo(cx-sz*0.4, cy-sz*0.9);
+        for(let j=0;j<5;j++) {
+          const px = cx - sz*0.4 + (j*0.2*sz);
+          const py = cy - sz*0.9 - (j%2===0? sz*0.3 : 0);
+          ctx.lineTo(px, py);
+        }
+        ctx.lineTo(cx+sz*0.4, cy-sz*0.9);
+        ctx.lineTo(cx+sz*0.45, cy-sz*0.4);
+        ctx.lineTo(cx-sz*0.45, cy-sz*0.4);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle="#ffd700"; ctx.lineWidth=3; ctx.stroke();
+      }
+    }
+
+    // 9. Ձեռքեր (տարբեր ուղղություններ)
+    ctx.strokeStyle=c2rgb(darken(col0,30));ctx.lineWidth=rnd(4,8);ctx.lineCap="round";
+    const armAngle=rnd(0.3,0.9);
+    ctx.beginPath();ctx.moveTo(cx-sz*0.7,cy);ctx.quadraticCurveTo(cx-sz,cy-sz*armAngle,cx-sz*0.85,cy+sz*0.15);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx+sz*0.7,cy);ctx.quadraticCurveTo(cx+sz,cy-sz*armAngle,cx+sz*0.85,cy+sz*0.15);ctx.stroke();
+  });
+
+  // 10. Զարդարանքներ (աստղեր, ծաղիկներ)
+  const sparkCount=rndInt(8,25);
+  for(let i=0;i<sparkCount;i++){
+    ctx.fillStyle=`hsla(${rndInt(0,60)},100%,65%,${rnd(0.3,0.7)})`;
+    drawStar(ctx,rnd(0,512),rnd(0,400),rnd(4,10),rnd(1.5,3));
+  }
+
+  return out;
+}
+
+// ── 2. WATERCOLOR ────────────────────────────────────────
+function genWatercolor(a) {
+  const out=makeCanvas(), ctx=out.getContext("2d");
+
+  // Թուղթ (տարբեր երանգ)
+  const papers=["#fef9f0","#fff8f0","#f5f0e8","#f0f4f8","#fdf5f5"];
+  ctx.fillStyle=rndFrom(papers); ctx.fillRect(0,0,512,512);
+
+  // Թղթի հատիկ
+  for(let i=0;i<rndInt(1000,3000);i++){
+    ctx.fillStyle=`rgba(${rndInt(150,200)},${rndInt(140,180)},${rndInt(120,160)},${rnd(0.02,0.06)})`;
+    ctx.fillRect(rnd(0,512), rnd(0,512), rnd(0.5,3), rnd(0.5,3));
+  }
+
+  const cols=a.domColors;
+  a.shapes.forEach((sh,i)=>{
+    const{cx,cy,w,h,col}=sh;
+    const col0=cols[i%cols.length]||col;
+    const sz=Math.max(w,h)*0.9+rnd(30,60);
+
+    // Լվացումների քանակը
+    const washCount=rndInt(6,14);
+    for(let wash=0;wash<washCount;wash++){
+      const ox=jitter(0,sz*0.7), oy=jitter(0,sz*0.7);
+      const wsz=sz*rnd(0.4,1.1);
+      const alpha=rnd(0.03,0.12);
+      const lift=rndInt(10,60);
+      const grad=ctx.createRadialGradient(cx+ox,cy+oy,0,cx+ox,cy+oy,wsz);
+      grad.addColorStop(0,c2rgb(lighten(col0,lift),alpha));
+      grad.addColorStop(0.55,c2rgb(col0,alpha*0.75));
+      grad.addColorStop(1,"rgba(250,248,244,0)");
+      ctx.fillStyle=grad;
+      // Տարբեր ձևի լվացումներ
+      const ws=rndInt(0,2);
+      ctx.beginPath();
+      if(ws===0) ctx.arc(cx+ox,cy+oy,wsz,0,Math.PI*2);
+      else if(ws===1) ctx.ellipse(cx+ox,cy+oy,wsz,wsz*rnd(0.6,1.2),rnd(0,Math.PI),0,Math.PI*2);
+      else {
+        ctx.moveTo(cx+ox, cy+oy-wsz);
+        for(let k=0;k<8;k++) {
+          const ang = (k/8)*Math.PI*2;
+          const rx = cx+ox+Math.cos(ang)*wsz;
+          const ry = cy+oy+Math.sin(ang)*wsz*rnd(0.5,1);
+          ctx.lineTo(rx, ry);
+        }
+        ctx.closePath();
+      }
+      ctx.fill();
+    }
+
+    // Թաց եզրերի ծաղկում
+    const bloomCount=rndInt(20,50);
+    for(let j=0;j<bloomCount;j++){
+      const ang=Math.random()*Math.PI*2;
+      const dist=sz*(rnd(0.35,0.75));
+      ctx.fillStyle=c2rgb(col0,rnd(0.02,0.08));
+      ctx.beginPath(); ctx.arc(cx+Math.cos(ang)*dist, cy+Math.sin(ang)*dist, rnd(2,18), 0, Math.PI*2); ctx.fill();
+    }
+
+    // Աղի էֆեկտ
+    const saltCount=rndInt(15,40);
+    for(let j=0;j<saltCount;j++){
+      const x=cx+jitter(0,sz*1.1), y=cy+jitter(0,sz*1.1);
+      ctx.fillStyle=c2rgb(darken(col0,rndInt(10,35)),rnd(0.03,0.09));
+      ctx.beginPath(); ctx.arc(x, y, rnd(0.5,5), 0, Math.PI*2); ctx.fill();
+    }
+
+    // Ցայտեր
+    if(rnd(0,1)>0.4){
+      for(let j=0;j<rndInt(5,18);j++){
+        const col2=cols[rndInt(0,cols.length-1)]||col0;
+        ctx.fillStyle=c2rgb(col2,rnd(0.08,0.2));
+        const sx=cx+jitter(0,sz*1.8), sy=cy+jitter(0,sz*1.8);
+        ctx.beginPath(); ctx.arc(sx, sy, rnd(1,8), 0, Math.PI*2); ctx.fill();
+      }
+    }
+  });
+
+  // Ընդհանուր ցայտեր
+  for(let i=0;i<rndInt(20,60);i++){
+    const col=cols[~~(Math.random()*cols.length)];
+    ctx.fillStyle=c2rgb(col,rnd(0.05,0.2));
+    ctx.beginPath(); ctx.arc(rnd(0,512), rnd(0,512), rnd(0.5,7), 0, Math.PI*2); ctx.fill();
+  }
+
+  return out;
+}
+
+// ── 3. COMIC ─────────────────────────────────────────────
+function genComic(a) {
+  const out=makeCanvas(), ctx=out.getContext("2d");
+
+  // Ֆոնի գույն
+  const bgTints=["#f5f0e8","#fff9e6","#fdf0f5","#f0f5ff","#f5fff5"];
+  ctx.fillStyle=rndFrom(bgTints); ctx.fillRect(0,0,512,512);
+
+  // Halftone
+  const dotSz=rnd(3,7);
+  const angle=rnd(0,Math.PI/6);
+  for(let y=0;y<512;y+=dotSz*2.2) for(let x=0;x<512;x+=dotSz*2.2){
+    const rx = x*Math.cos(angle) - y*Math.sin(angle);
+    const ry = x*Math.sin(angle) + y*Math.cos(angle);
+    const d=Math.sqrt((rx-256)**2+(ry-256)**2);
+    const intensity=Math.max(0,1-d/(512*.65));
+    if(intensity>.06){
+      ctx.fillStyle=`rgba(0,0,0,${intensity*rnd(0.08,0.16)})`;
+      ctx.beginPath(); ctx.arc(x+(y/dotSz%2)*dotSz, y, dotSz*intensity, 0, Math.PI*2); ctx.fill();
+    }
+  }
+
+  // Արագության գծեր
+  const lineColor=rndFrom(["rgba(217,0,18,0.07)","rgba(0,51,160,0.07)","rgba(242,168,0,0.07)"]);
+  ctx.strokeStyle=lineColor; ctx.lineWidth=1;
+  const lineCount=rndInt(20,50);
+  for(let i=0;i<lineCount;i++){
+    const ang=(i/lineCount)*Math.PI*2+rnd(0,0.2);
+    ctx.beginPath(); ctx.moveTo(256,256); ctx.lineTo(256+Math.cos(ang)*450,256+Math.sin(ang)*450); ctx.stroke();
+  }
+
+  const cols=a.domColors;
+  a.shapes.forEach((sh,i)=>{
+    const{cx,cy,w,h,col}=sh;
+    const col0=cols[i%cols.length]||col;
+    const sz=Math.max(w,h)*0.7+rnd(20,45);
+
+    // Կերպարի ուրվագիծ (3 տարբեր ձև)
+    const bodyType=rndInt(0,2);
+    const fillType=rndInt(0,1);
+    if(fillType===0) ctx.fillStyle=c2rgb(col0);
+    else {
+      const fg=ctx.createLinearGradient(cx-sz,cy-sz,cx+sz,cy+sz);
+      fg.addColorStop(0,c2rgb(lighten(col0,60))); fg.addColorStop(1,c2rgb(darken(col0,30)));
+      ctx.fillStyle=fg;
+    }
+    ctx.beginPath();
+    if(bodyType===0) ctx.arc(cx,cy,sz,0,Math.PI*2);
+    else if(bodyType===1) ctx.ellipse(cx,cy,sz,sz*0.75,rnd(0,0.4),0,Math.PI*2);
+    else roundRect(ctx,cx-sz,cy-sz*0.8,sz*2,sz*1.6,sz*0.5);
+    ctx.fill();
+    ctx.strokeStyle="#1a1a1a"; ctx.lineWidth=rnd(5,10); ctx.stroke();
+
+    // Փայլ
+    ctx.fillStyle=`rgba(255,255,255,${rnd(0.25,0.5)})`;
+    ctx.beginPath(); ctx.arc(cx-sz*rnd(0.15,0.3), cy-sz*rnd(0.15,0.3), sz*rnd(0.3,0.5), 0, Math.PI*2); ctx.fill();
+
+    // Գործողության գծեր
+    ctx.strokeStyle="#1a1a1a"; ctx.lineWidth=rnd(1.5,3.5);
+    const lineN=rndInt(8,20);
+    for(let j=0;j<lineN;j++){
+      const ang=(j/lineN)*Math.PI*2+rnd(0,0.2);
+      const inner=sz+rnd(4,10), outer=inner+rnd(12,30);
+      ctx.beginPath(); ctx.moveTo(cx+Math.cos(ang)*inner,cy+Math.sin(ang)*inner);
+      ctx.lineTo(cx+Math.cos(ang)*outer,cy+Math.sin(ang)*outer); ctx.stroke();
+    }
+
+    // Բացականչություն (POW!)
+    const words=["POW!","WOW!","ZAP!","BAM!","BOOM!","YAY!","COOL!","OMG!","WHOA!","HEY!"];
+    if(i===0||Math.random()>.7){
+      ctx.save(); ctx.translate(jitter(cx,80), jitter(cy-sz*1.3,40));
+      ctx.rotate(rnd(-0.35,0.35));
+      const word=rndFrom(words);
+      const fs=rnd(sz*0.35,sz*0.6)+20;
+      ctx.font=`bold ${~~fs}px 'Baloo 2',sans-serif`;
+      const wc=cols[rndInt(0,cols.length-1)]||col0;
+      ctx.fillStyle=c2rgb(lighten(wc,60)); ctx.strokeStyle="#1a1a1a"; ctx.lineWidth=rnd(3,6);
+      ctx.strokeText(word,0,0); ctx.fillText(word,0,0); ctx.restore();
+    }
+  });
+
+  // Աստղեր
+  for(let i=0;i<rndInt(6,18);i++){
+    ctx.fillStyle=`rgba(255,215,0,${rnd(0.25,0.6)})`;
+    drawStar(ctx,rnd(0,512),rnd(0,512),rnd(4,12),rnd(2,4));
+  }
+  return out;
+}
+
+// ── roundRect helper ──────────────────────────────────────
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r); ctx.lineTo(x+r,y+h);
+  ctx.arcTo(x,y+h,x,y+h-r,r); ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r); ctx.closePath();
+}
+
+// ── Star helper ──────────────────────────────────────────
+function drawStar(ctx,x,y,outer,inner) {
+  ctx.beginPath();
+  for(let i=0;i<5;i++){
+    const a1=(i/5)*Math.PI*2-Math.PI/2;
+    const a2=a1+Math.PI/5;
+    ctx[i?"lineTo":"moveTo"](x+Math.cos(a1)*outer,y+Math.sin(a1)*outer);
+    ctx.lineTo(x+Math.cos(a2)*inner,y+Math.sin(a2)*inner);
+  }
+  ctx.closePath(); ctx.fill();
+}
+
+// ── Generate dispatcher ──────────────────────────────────
+function generateArt(analysis, styleId) {
+  switch(styleId) {
+    case "cartoon":    return genCartoon(analysis);
+    case "watercolor": return genWatercolor(analysis);
+    case "comic":      return genComic(analysis);
+    default:           return genCartoon(analysis);
+  }
+}
+
+// ── Session ──────────────────────────────────────────────
+function saveSession() {
+  const s={...session, styles:[...session.styles]};
+  localStorage.setItem("nk_session",JSON.stringify(s));
+}
+
+function updateStats() {
+  const t=session.total, streak=session.streak, badges=session.badges.length;
+  if(t>0){
+    document.getElementById("statsRow").style.display="flex";
+    document.getElementById("statTotal").textContent=`🎨 ${t}`;
+    document.getElementById("statStreak").textContent=`🔥 ${streak}`;
+    document.getElementById("statBadges").textContent=`🏅 ${badges}`;
+  }
+  document.getElementById("rStatTotal").textContent=`🎨 ${t}`;
+  document.getElementById("rStatStreak").textContent=`🔥 ${streak}`;
+  document.getElementById("rStatBadges").textContent=`🏅 ${badges}`;
+}
+
+function checkBadges() {
+  const earned=new Set(session.badges.map(b=>b.id));
+  return BADGES.filter(b=>!earned.has(b.id)&&b.cond(session)).map(b=>{
+    session.badges.push({id:b.id});
+    return b;
+  });
+}
+
+// ── Confetti ──────────────────────────────────────────────
+function spawnConfetti() {
+  const wrap=document.getElementById("confettiWrap");
+  wrap.innerHTML="";
+  const cls=["#D90012","#F2A800","#0033A0","#43a047","#e040fb","#ffd700"];
+  for(let i=0;i<30;i++){
+    const el=document.createElement("div");
+    el.className="cf";
+    el.style.setProperty("--x",Math.random()*100+"%");
+    el.style.setProperty("--c",cls[~~(Math.random()*cls.length)]);
+    el.style.setProperty("--s",(7+Math.random()*10)+"px");
+    el.style.setProperty("--d",(1.5+Math.random()*2)+"s");
+    el.style.setProperty("--dl",(Math.random()*.8)+"s");
+    el.style.setProperty("--rot",(Math.random()*720)+"deg");
+    wrap.appendChild(el);
+  }
+}
+
+// ── Badge toast ──────────────────────────────────────────
+function showBadges(badges) {
+  if(!badges.length) return;
+  const toast=document.getElementById("badgeToast");
+  toast.innerHTML="";
+  badges.forEach(b=>{
+    const row=document.createElement("div");
+    row.className="badge-row";
+    row.innerHTML=`<span class="badge-icon">${b.emoji}</span><div><div class="badge-name">${b.name}</div><div class="badge-sub">${b.desc}</div></div>`;
+    toast.appendChild(row);
+  });
+  toast.style.display="flex";
+  setTimeout(()=>toast.style.display="none",4500);
+}
+
+// ── Main generate flow ───────────────────────────────────
+function doGenerate() {
+  const d=ctx.getImageData(0,0,512,512).data;
+  let hasContent=false;
+  for(let i=0;i<d.length;i+=16) if(d[i]<248||d[i+1]<248||d[i+2]<248){hasContent=true;break;}
+  if(!hasContent){alert("Նախ նկարիր ինչ-որ բան! 🎨");return;}
+
+  const loadScreen=document.getElementById("loadScreen");
+  const loadMsg=document.getElementById("loadMsg");
+  const loadBar=document.getElementById("loadBar");
+  loadScreen.classList.add("on");
+  loadBar.style.transition="none";loadBar.style.width="0";
+
+  let msgI=0;
+  const msgTimer=setInterval(()=>{
+    loadMsg.textContent=LOAD_MSGS[++msgI%LOAD_MSGS.length];
+    loadMsg.style.animation="none";requestAnimationFrame(()=>{loadMsg.style.animation="";});
+  },800);
+
+  requestAnimationFrame(()=>{
+    loadBar.style.transition="width 1.8s cubic-bezier(.1,.05,.4,1)";
+    loadBar.style.width="90%";
+  });
+
+  const origURL=canvas.toDataURL("image/png");
+
+  setTimeout(()=>{
+    clearInterval(msgTimer);
+    loadMsg.textContent="Ֆինիշ! 🎉";
+
+    const analysis=analyseCanvas();
+    const styleId=STYLES[curStyle].id;
+    const resultCanvas=generateArt(analysis,styleId);
+    const resultURL=resultCanvas.toDataURL("image/png");
+
+    // Update session
+    session.total++;
+    session.styles.add(styleId);
+    const today=new Date().toDateString();
+    session.streak=session.lastAt===today?session.streak:(session.lastAt===new Date(Date.now()-86400000).toDateString()?session.streak+1:1);
+    session.lastAt=today;
+    const newBadges=checkBadges();
+    saveSession();
+    updateStats();
+
+    // Show result
+    loadScreen.classList.remove("on");
+    document.getElementById("origImg").src=origURL;
+    document.getElementById("resultImg").src=resultURL;
+    document.getElementById("compliment").textContent=COMPLIMENTS[~~(Math.random()*COMPLIMENTS.length)];
+    document.getElementById("resultTag").textContent=`${STYLES[curStyle].icon} ${STYLES[curStyle].label} ոճ`;
+
+    // Guess
+    const g=GUESSES[~~(Math.random()*GUESSES.length)];
+    document.getElementById("guessWord").textContent=g.t;
+    document.getElementById("guessFact").textContent=g.f;
+    document.getElementById("guessBox").style.display="block";
+
+    document.getElementById("resultScreen").classList.add("on");
+    spawnConfetti();
+    if(newBadges.length) showBadges(newBadges);
+
+  }, 1900);
+}
+
+function closeGuess(){ document.getElementById("guessBox").style.display="none"; }
+
+function doSave(){
+  const a=document.createElement("a");
+  a.href=document.getElementById("resultImg").src;
+  a.download=`nkarik-${STYLES[curStyle].id}-${Date.now()}.png`;
+  a.click();
+}
+
+function doAgain(){
+  document.getElementById("resultScreen").classList.remove("on");
+  doClear();
+}
+
+// ── Init ─────────────────────────────────────────────────
+buildUI();
+initCanvas();
+updateStats();
+</script>
+</body>
 </html>
